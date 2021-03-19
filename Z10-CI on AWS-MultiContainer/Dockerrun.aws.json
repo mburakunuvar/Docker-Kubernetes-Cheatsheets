@@ -1,0 +1,40 @@
+{
+  "AWSEBDockerrunVersion": 2,
+  "containerDefinitions": [
+    {
+      "name": "react-frontend",
+      "image": "burakunuvar/multi-client-02-11",
+      "hostname": "react",
+      "essential": false,
+      "memory": 128
+    },
+    {
+      "name": "express-server",
+      "image": "burakunuvar/multi-server-02-11",
+      "hostname": "api",
+      "essential": false,
+      "memory": 128
+    },
+    {
+      "name": "express-worker",
+      "image": "burakunuvar/multi-worker-02-11",
+      "hostname": "worker",
+      "essential": false,
+      "memory": 128
+    },
+    {
+      "name": "nginx",
+      "image": "burakunuvar/multi-nginx-02-11",
+      "hostname": "nginx",
+      "essential": true,
+      "portMappings": [
+        {
+          "hostPort": 80,
+          "containerPort": 80
+        }
+      ],
+      "links": ["react-frontend", "express-server"],
+      "memory": 128
+    }
+  ]
+}
