@@ -1,0 +1,14 @@
+## VERSION 2 : with Volume Mapping Enabled
+
+FROM node:alpine
+USER node
+RUN mkdir -p /home/node/app
+WORKDIR /home/node/app
+# will i need still need this COPY, after mapping volumes ? 
+# YES :) because we'll create the node_modules folder inside the container.
+COPY --chown=node:node ./package.json ./
+RUN npm install
+# will i need still need this COPY, after mapping volumes ?
+# NO :) but it's recommended to do so, as we'll use the same files for prod
+COPY --chown=node:node ./ ./
+CMD ["npm", "start"]

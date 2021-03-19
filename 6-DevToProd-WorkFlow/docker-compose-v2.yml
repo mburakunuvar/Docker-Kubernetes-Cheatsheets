@@ -1,0 +1,29 @@
+## VERSION 2 : INCLUDE TESTS
+
+version: "3"
+services:
+  web-app:
+    stdin_open: true # to prevent bug with the Create React App
+    # restart: always
+    # build: . will not work for Dockerfile.dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "80:3000"
+    volumes:
+      - /home/user/app/node_modules #don't map this
+      - .:/home/user/app #map all the rest
+  test-app:
+    stdin_open: true
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    # ports aren't necessary
+    # ports:
+    #   - "3000:3000"
+    volumes:
+      - /home/user/app/node_modules
+      - .:/home/user/app
+    # over-write start command within dockerfile
+    command: ["npm", "test"]
