@@ -144,7 +144,8 @@ Now the last thing I want to mention is that the node port is going to always be
 ## Connecting to Running Containers ( local )
 
 ```bash
-$ minikube start
+# $ minikube start
+$ minikube start --vm-driver=none
 $ minikube status
 $ kubectl apply -f sample-k8s-pod.yaml
 $ kubectl apply -f sample-k8s-service.yaml

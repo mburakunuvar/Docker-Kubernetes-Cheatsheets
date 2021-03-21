@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-k8s-service
+spec:
+  type: NodePort
+  ports:
+    - port: 9999
+      targetPort: 3000
+      nodePort: 31515
+    # - port add the 2nd one in form of an array
+
+  selector:
+    component: web
