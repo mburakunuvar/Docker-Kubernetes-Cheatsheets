@@ -17,12 +17,38 @@ If it has a new name or kind, then a new object will be created
 
 ### Declarative Updates in Action
 
-=> update the image (simple-node by simple-react)
+#### MAKE SURE IMAGES ARE ON DOCKER-HUB
 
-- or in my case replace existing (stephengrider/multi-client) by (burakunuvar/multi-client-for-kubernetes)
+We're going to update the image within our pod object
+=> (simple-node by simple-react)
 
 ```bash
-$ kubectl apply -f client-pod.yaml
+$ docker build -t burakunuvar/dockerized-react-app-image .
+$ docker images
+$ docker run --name dockerized-react-app -p 80:3000 burakunuvar/dockerized-react-app-image
+$ docker login
+- username
+- password
+$ docker push burakunuvar/dockerized-react-app-image
+```
+
+=> Kubernetes App Running on http://54.170.114.35:31515/
+=> Docker app running on http://54.170.114.35/
+
+- replace existing image in pod object (burakunuvar/dockerized-node-app-image) by (burakunuvar/dockerized-react-app-image)
+
+```yaml
+spec:
+  containers:
+    - name: nodejs-app
+      # image: burakunuvar/dockerized-node-app-image
+      image: burakunuvar/dockerized-react-app-image
+      ports:
+        - containerPort: 3000
+```
+
+```bash
+$ kubectl apply -f sample-k8s-pod.yaml
 # pod/client-pod configured
 
 ```
@@ -30,17 +56,19 @@ $ kubectl apply -f client-pod.yaml
 **inspect the new running pod**
 
 ```bash
-$ kubectl describe pod client-pod
+# for specific object
+$ kubectl describe pod sample-k8s-pod
+
+# for all objects with specific type
+$ kubectl describe pods
 ```
 
-- didn't work so why not returning back to (stephengrider/multi-client) ?
+**limitations on config updates for POD Object**
 
-**limitations on config updates**
-
-- changing container port
+- changing container port within pod object is not possible
 
 ```yaml
-- containerPort: 3000
+- containerPort: 3000=>3050 not allowed!
 ```
 
 Not allowed ! ( only image and few others are possible to be updated )
@@ -77,33 +105,21 @@ selector:
 
 ## Applying a Deployment
 
-### removing object
+Remove the existing pod object first and then use the deployment config :
 
 ```bash
 # an imperative update to the state of cluster
-$ kubectl delete -f client-pod.yaml
+$ kubectl delete -f sample-k8s-pod.yaml
 # might take 10 seconds until container is killed/stopped
-$ kubectl apply -f client-deployment.yaml
-
+$ kubectl apply -f sample-k8s-deployment.yaml
 $ kubectl get pods
 $ kubectl get deployments
 ```
 
+reminder: delete is an imperative update.
+reminder: You should be in the directory of config files
+
 ## Why to Use Service Objects?
-
-```bash
-# for local desktop
-$ minikube ip
-#or start minikube without vm on amazon linux
-# we need a cluster without a seperate vm
-$ minikube stop
-$ minikube delete
-$ minikube start --vm-driver=none
-#  Kubernetes 1.20.2 requires conntrack to be installed in root's path
-# sudo apt install conntrack
-$ sudo yum install conntrack
-
-```
 
 => Every single pod that we create gets its own IP address assigned to it. ( not the minikube ip , which was the ip of node)
 
@@ -115,7 +131,7 @@ Our pod was randomly assigned an IP address of 172.17.06 ( assigned to the pod i
 
 Whenever pod is restarted or a new one created, IP Address will change. Therefore, in order to provide a stabilized approach we use SERVICES.
 
-So that's why we make use of the service these pods are coming and going all the time. Pods are getting deleted they're getting recreated and every time they potentially might get assigned a brand new IP address the service is going to kind of abstract out that difficulty and that's why we make use of these services. And each time that we want to connect to one of our different pots.
+So that's why we make use of the service. These pods are coming and going all the time. Pods are getting deleted they're getting recreated and every time they potentially might get assigned a brand new IP address the service is going to kind of abstract out that difficulty and that's why we make use of these services. And each time that we want to connect to one of our different pots.
 
 - remember that Services use selectors in order to find the target port, not their IPs.
 
@@ -128,12 +144,28 @@ selector:
 
 - Now we can update the port number in yaml file, which will spin up a new pod and kill the previous one. (recreate)
 
-```bash
-$ kubectl get pods
-$ kubectl describe pods ...
+```yaml
+spec:
+  # replicas: 1
+  replicas: 5
+  selector:
+    matchLabels:
+      component: web
+  template:
+    metadata:
+      labels:
+        component: web
+    spec:
+      containers:
+        - name: dockerized-react-app
+          # image: burakunuvar/dockerized-react-app-image
+          image: burakunuvar/dockerized-node-app-image
+          ports:
+            # - containerPort: 3000
+            - containerPort: 3050 # this requires change on app code as well,
 ```
 
-- We can also update number of replcas ( from 1 to 5)
+- We can also update number of replicas ( from 1 to 5)
 
 ```bash
 $ kubectl get deployments
@@ -150,8 +182,8 @@ $ kubectl get deployments
 2.
 
 ```bash
-$ docker build -t stephengrider/multi-client .
-$ docker push stephengrider/multi-client
+$ docker build -t burakunuvar/dockerized-react-app-image .
+$ docker push burakunuvar/dockerized-react-app-image
 ```
 
 ## Rebuilding the Client Image
@@ -167,44 +199,48 @@ OPT 1 : delete pods, so while recreating it'll use the latest image
 OPT 2 : mention versions on image in yaml (v1,v2 )
 
 ```bash
-$ docker build -t stephengrider/multi-client .
+$ docker build -t burakunuvar/dockerized-react-app-image .
 # update yaml
 $ kubeclt apply ... with new config
 ```
 
 requires manual steps
 
+```yaml
+containers:
+  - name: dockerized-react-app
+    image: burakunuvar/dockerized-react-app-image:v2
+    image: burakunuvar/dockerized-react-app-image:v3
+```
+
 Note: Environment variables aren't allowed within this file so no way to use sth like ${client_version}
 
 OPT 3 : Imperative update
 
-step 1 : Build your own image
+## Imperatively Updating a Deployment's Image => Step by step
+
+Note : We'd already built our deployments and pods
 
 ```bash
-$ cd frontend
-$ docker build -t burakunuvar/simple-react-frontend
-$ docker run -p 9000:80 burakunuvar/simple-react-frontend
-# visit http://3.249.61.82:9000/
-$ docker push burakunuvar/simple-react-frontend
-```
-
-step 2 : Build your own deployments and pods
-
-```
 $ minikube start --vm-driver=none
-$ kubectl apply -f client-deployment.yaml
-$ kubectl apply -f client-node-port.yaml
+$ kubectl apply -f sample-k8-deployment.yaml
+$ kubectl apply -f sample-k8-port.yaml
 ```
 
-step 3 : update the code of react app
-
-Step 4 :
+step 1 : update the code of react app
+step 2 : rebuild your image
 
 ```bash
-$ docker build -t burakunuvar/simple-react-frontend:v5 .
-$ docker push burakunuvar/simple-react-frontend:v5
+$ docker build -t burakunuvar/dockerized-react-app-image:v3
+$ docker run -p 9000:80 burakunuvar/dockerized-react-app-image:v3
+# visit http://3.249.61.82:9000/
+$ docker push burakunuvar/dockerized-react-app-image:v3
+```
 
-$ kubectl set image deployment/client-deployment client=burakunuvar/simple-react-frontend:v5
+Step 3 :
+
+```bash
+$ kubectl set image deployment/sample-k8-deployment client=burakunuvar/dockerized-react-app-image:v3
 ```
 
 **Note:** when we eventually move over to a production environment all this versioning stuff is going to be completely automated for us and we're not going to have to do any additional work.
@@ -222,6 +258,10 @@ $ docker ps
 
 How to use docker-client to interact with minikube vm as well as
 docker for Mac (local copy)
+
+Whenever you use a `docker cli` command like docker ps
+when docker is invoked it's going to look at a set of environment variables to decide what copy of docker- server it is supposed to connect to an attempt to execute this command.
+So when we run this `minicube docker-env `and command with the `eval` command especially it's going to set up some new environment variables that we're going to tell docker cli to reach into the virtual machine to find the copy of docker server that is supposed to work work with.
 
 ```bash
 $ eval $(minikube docker-env)

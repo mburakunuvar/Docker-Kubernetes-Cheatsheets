@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-k8s-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: web
+  template:
+    metadata:
+      labels:
+        component: web
+    spec:
+      containers:
+        - name: dockerized-react-app
+          image: burakunuvar/dockerized-react-app-image
+          ports:
+            - containerPort: 3000
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: client-deployment
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       component: web
+#   template:
+#     metadata:
+#       labels:
+#         component: web
+#     spec:
+#       containers:
+#         - name: client
+#           image: stephengrider/multi-cloud
+#           ports:
+#            - containerPort: 3000
